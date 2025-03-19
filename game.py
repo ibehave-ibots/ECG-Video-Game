@@ -29,7 +29,7 @@ def make_heart():
 
 def update():
     game['x'] += 1
-    if game['y_pos'] == 0 and pyxel.btnp(pyxel.KEY_SPACE):
+    if game['y_pos'] == 0 and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_B)):
         game['y_vel'] = 4
         print('jump')
     if game['y_pos'] >= 0:
@@ -39,7 +39,7 @@ def update():
         game['y_pos'] = 0
         game['y_vel'] = 0
 
-    if pyxel.btnp(pyxel.KEY_H):
+    if pyxel.btnp(pyxel.KEY_H) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_Y):
         make_heart()
 
     global hearts
