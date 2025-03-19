@@ -22,7 +22,7 @@ hearts = []
 def make_heart():
     global hearts
     global game
-    heart = dict(x=game['x'] + 100, y=20)
+    heart = dict(x=game['x'] + 140, y=20)
     hearts.append(heart)
 
 
@@ -59,7 +59,7 @@ def draw():
 
 
     pyxel.blt(x=16, y=58 - round(game['y_pos']), **robot)
-    
+    pyxel.text(x=4, y=10, s=f"Heartbeats Collected: {game['score']}", col=1)    
     
 
 
