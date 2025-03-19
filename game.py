@@ -9,7 +9,20 @@ def create_udp_socket():
     client_socket.bind(LISTEN_ADDRESS)  # Bind so we can receive packets on this port
     print(f"UDP client listening on {LISTEN_ADDRESS}.")
     return client_socket
+
+def check_for_heartbeat_from_server(socket: socket.socket) -> bool:
+    try:
+        data, addr = socket.recvfrom(1024)  # 1 KB buffer
+        print(f"Client: received {data} from {addr}")
+        return True
+    except BlockingIOError:
+        return False
+        
+
+
 client_socket = create_udp_socket()
+
+
 
 
 pyxel.init(160, 80, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAPE)
@@ -41,13 +54,7 @@ def update():
         game['y_vel'] = 0
 
     heart_button_pressed = pyxel.btnp(pyxel.KEY_H) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_Y)
-    heart_signal_received = False
-    try:
-        data, addr = client_socket.recvfrom(1024)  # 1 KB buffer
-        heart_signal_received = True
-        print(f"Client: received {data} from {addr}")
-    except BlockingIOError:
-        pass  # No data available right now
+    heart_signal_received = check_for_heartbeat_from_server(socket=client_socket)
 
     if heart_button_pressed or heart_signal_received:
         add_heart(hearts=game['hearts'])
