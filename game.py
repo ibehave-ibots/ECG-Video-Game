@@ -22,7 +22,7 @@ def check_for_heartbeat_from_server(socket: socket.socket) -> bool:
 
 
 def add_heart(hearts: list[dict]):
-    hearts.append(dict(x=game['x'] + 140, y=20))
+    hearts.append(dict(x=game['x'] + 140, y=0, big=False))
 
 
 client_socket = create_udp_socket()
@@ -33,6 +33,7 @@ pyxel.init(160, 80, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAP
 # Art Assets
 pyxel.load('assets.pyxres')
 heart_img = dict(img=0, u=16, v=0, w=8, h=8, colkey=0)
+bigheart_img = dict(img=0, u=16, v=8, w=8, h=8, colkey=0)
 ground_img = dict(img=0, u=24, v=0, w=8, h=8, colkey=0)
 robot_img = dict(img=0, u=0, v=0, w=16, h=16, colkey=0)
 cloud_img = dict(img=0, u=32, v=0, w=16, h=16, colkey=0)
@@ -60,6 +61,8 @@ def update():
 
     if game['hearts'] and game['y_pos'] > 30:
         for heart in game['hearts']:
+            if heart['big']:
+                continue
             rel_heart_pos = game['hearts'][0]['x'] - game['x']
             if -10 < rel_heart_pos < 10:
                 game['score'] += 1
@@ -77,7 +80,22 @@ def update():
         for cloud in game['clouds']:
             cloud['x'] -= 1
 
+    # If two hearts are too close together, they should join like bubbles and float up out of reach.
+    if len(game['hearts']) > 1:
+        for heart1, heart2 in zip(game['hearts'][:-1], game['hearts'][1:]):
+            if heart1['big'] or heart2['big']:
+                continue
+            if abs(heart2['x'] - heart1['x']) < 23:
+                heart1['x'] += 1
+                heart2['y'] -= 1
+            if abs(heart2['x'] - heart1['x']) < 5:
+                game['hearts'].remove(heart1)
+                heart2['big'] = True
 
+    for heart in game['hearts']:
+        if heart['big']:
+            heart['y'] += 0.3
+            heart['x'] += 0.1
 
 
 def draw():
@@ -90,13 +108,16 @@ def draw():
     
     # Move Clouds
     for cloud in game['clouds']:
-        
         pyxel.blt(**(cloud_img | cloud))
 
     
     # Move Hearts
     for heart_obj in game['hearts']:
-        pyxel.blt(x=16 + (heart_obj['x'] - game['x']), y=30, **heart_img)
+        x = 16 + (heart_obj['x'] - game['x'])
+        if heart_obj['big']:
+            pyxel.blt(x=x, y=30-heart_obj['y'], **bigheart_img)
+        else:
+            pyxel.blt(x=x, y=30, **heart_img)
 
 
     pyxel.blt(x=16, y=58 - round(game['y_pos']), **robot_img)
