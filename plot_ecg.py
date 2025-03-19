@@ -11,6 +11,10 @@ import struct
 import socket
 
 
+######## Parameters ######
+CALLIOPE_PORT = 'COM3'
+
+##########################
 
 # Create a UDP socket
 SERVER_ADDRESS = ("localhost", 5005)  # You can replace 'localhost' with '' for any interface
@@ -23,7 +27,7 @@ print(f"UDP server started on {SERVER_ADDRESS}.")
 fmt = "h"
 packet_size = struct.calcsize(fmt)
 buffer = bytearray()
-ser = serial.Serial('COM3', baudrate=9600)
+ser = serial.Serial(CALLIOPE_PORT, baudrate=9600)
 
 
 dpg.create_context()
