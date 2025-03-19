@@ -42,7 +42,7 @@ with dpg.window():
         dpg.add_plot_axis(dpg.mvXAxis, label="Time", tag="xaxis", time=True, no_tick_labels=True)
         dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude", tag="yaxis")
         dpg.add_line_series([], [], tag='line', parent="yaxis")
-        dpg.set_axis_limits("yaxis", -1.5, 1.5)
+        # dpg.set_axis_limits("yaxis", -1.5, 1.5)
     dpg.add_checkbox(label="Auto-fit x-axis limits", tag="auto_fit_checkbox", default_value=True)
 
 dpg.create_viewport(width=900, height=600, title='Updating plot data')
