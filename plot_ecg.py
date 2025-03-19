@@ -48,9 +48,8 @@ def update_plot():
         return
     to_filter = updated_data_y[-20:]
     coeffs = pywt.wavedec(to_filter, 'db4', level=4) 
-    detail_coeffs = coeffs[-1]
     heartbeat_x.append(heartbeat_x[-1]+1 if heartbeat_x else 0)
-    heartbeat_y.append((np.std(detail_coeffs) * 0.4).item())
+    heartbeat_y.append((np.std(coeffs[-1]) * 0.4).item())
     dpg.configure_item('filtered_line', x=list(heartbeat_x), y=list(heartbeat_y))
     dpg.fit_axis_data("filtered_xaxis")
     ####
@@ -60,7 +59,6 @@ with dpg.window():
         dpg.add_plot_axis(dpg.mvXAxis, label="Time", tag="xaxis", time=True, no_tick_labels=True)
         dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude", tag="yaxis")
         dpg.add_line_series([], [], tag='line', parent="yaxis")
-        # dpg.set_axis_limits("yaxis", -1.5, 1.5)
     dpg.add_checkbox(label="Auto-fit x-axis limits", tag="auto_fit_checkbox", default_value=True)
 
 # Filtered signal window
@@ -74,8 +72,7 @@ with dpg.window(label="Filtered Heartbeat Signal"):
     with dpg.plot(height=400, width=500, tag='filtered_plot'):
         dpg.add_plot_axis(dpg.mvXAxis, label="Time", tag="filtered_xaxis", time=True, no_tick_labels=True)
         dpg.add_plot_axis(dpg.mvYAxis, label="Filtered Amplitude", tag="filtered_yaxis")
-        dpg.add_line_series([], [], tag='filtered_line', parent="filtered_yaxis")#, color=(0, 255, 0, 255))
-        # dpg.add_inf_line_series([], tag='event_det', parent='filtered_yaxis')
+        dpg.add_line_series([], [], tag='filtered_line', parent="filtered_yaxis")
         dpg.add_drag_line(label='Threshold', default_value=thresohld, vertical=False, callback=set_threshold)
 
 
@@ -83,6 +80,6 @@ dpg.create_viewport(width=900, height=600, title='Updating plot data')
 dpg.setup_dearpygui()
 dpg.show_viewport()
 while dpg.is_dearpygui_running():
-    update_plot() # updating the plot directly from the running loop
+    update_plot() 
     dpg.render_dearpygui_frame()
 dpg.destroy_context()
