@@ -3,36 +3,28 @@ import socket
 
 LISTEN_ADDRESS = ("", 5005)  # Match the server port
 
-# Create a UDP socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-client_socket.setblocking(False)
-client_socket.bind(LISTEN_ADDRESS)  # Bind so we can receive packets on this port
-print(f"UDP client listening on {LISTEN_ADDRESS}.")
+def create_udp_socket():
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_socket.setblocking(False)
+    client_socket.bind(LISTEN_ADDRESS)  # Bind so we can receive packets on this port
+    print(f"UDP client listening on {LISTEN_ADDRESS}.")
+    return client_socket
+client_socket = create_udp_socket()
 
 
 pyxel.init(160, 80, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAPE)
 
+# Art Assets
 pyxel.load('assets.pyxres')
+heart_img = dict(img=0, u=16, v=0, w=8, h=8, colkey=0)
+ground_img = dict(img=0, u=24, v=0, w=8, h=8, colkey=0)
+robot_img = dict(img=0, u=0, v=0, w=16, h=16, colkey=0)
 
-heart = dict(img=0, u=16, v=0, w=8, h=8, colkey=0)
-ground = dict(img=0, u=24, v=0, w=8, h=8, colkey=0)
-robot = dict(img=0, u=0, v=0, w=16, h=16, colkey=0)
+# Game State
+game = dict(x=0, y_pos = 0, y_vel = 0, gravity = 0.2, strength = 4, score = 0, hearts=[])
 
-game = dict(
-    x = 0,
-    y_pos = 0,
-    y_vel = 0,
-    gravity = 0.2,
-    strength = 4,
-    score = 0,
-)
-
-hearts = []
-def make_heart():
-    global hearts
-    global game
-    heart = dict(x=game['x'] + 140, y=20)
-    hearts.append(heart)
+def add_heart(hearts: list[dict]):
+    hearts.append(dict(x=game['x'] + 140, y=20))
 
 
 
@@ -58,25 +50,24 @@ def update():
         pass  # No data available right now
 
     if heart_button_pressed or heart_signal_received:
-        make_heart()
+        add_heart(hearts=game['hearts'])
 
-    global hearts
-    if hearts and game['y_pos'] > 30 and -10 < (hearts[0]['x'] - game['x']) < 10:
+    if game['hearts'] and game['y_pos'] > 30 and -10 < (game['hearts'][0]['x'] - game['x']) < 10:
         print('score!')
         game['score'] += 1
-        hearts = hearts[1:]
+        game['hearts'] = game['hearts'][1:]
 
 def draw():
     pyxel.cls(6)
     x_offset = game['x'] % 8
     for x in range(0, 168, 8):
-        pyxel.blt(x=x-x_offset, y=80-8, **ground)
+        pyxel.blt(x=x-x_offset, y=80-8, **ground_img)
 
-    for heart_obj in hearts:
-        pyxel.blt(x=16 + (heart_obj['x'] - game['x']), y=30, **heart)
+    for heart_obj in game['hearts']:
+        pyxel.blt(x=16 + (heart_obj['x'] - game['x']), y=30, **heart_img)
 
 
-    pyxel.blt(x=16, y=58 - round(game['y_pos']), **robot)
+    pyxel.blt(x=16, y=58 - round(game['y_pos']), **robot_img)
     pyxel.text(x=4, y=10, s=f"Heartbeats Collected: {game['score']}", col=1)    
     
 
