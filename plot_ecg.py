@@ -28,7 +28,7 @@ ser = serial.Serial('COM3', baudrate=9600)
 
 dpg.create_context()
 
-DEQUE_MAX_LEN = 200
+DEQUE_MAX_LEN = 500
 data_x = deque(maxlen=DEQUE_MAX_LEN)
 data_y = deque(maxlen=DEQUE_MAX_LEN)
 heartbeat_x = deque(maxlen=DEQUE_MAX_LEN)
@@ -79,7 +79,7 @@ def update_plot():
             is_beating = False
     ####
 
-with dpg.window():
+with dpg.window(label="Raw Heartbeat Signal"):
     with dpg.plot(height=400, width=500):
         dpg.add_plot_axis(dpg.mvXAxis, label="Time", tag="xaxis", time=True, no_tick_labels=True)
         dpg.add_plot_axis(dpg.mvYAxis, label="Amplitude", tag="yaxis")

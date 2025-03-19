@@ -1,4 +1,3 @@
-Calliope Editor: https://python.calliope.cc/
 
 
 ## Game Demo
@@ -13,7 +12,7 @@ Calliope Editor: https://python.calliope.cc/
     - right leg near the shin
   - Set threshold on the `Filtered Heartbeat Signal` by manually dragging the horizontal line. A heart shows up on the game window.
 - Player 2
-  - Collect hearts in the game by jumping (`spacebar`) to get points
+  - Collect hearts in the game by jumping (`spacebar`) to get points!
   
 
 
@@ -28,14 +27,21 @@ Shopping List:
 
 ## ECG Data Acquisition GUI
 
+### Calliope and ECG Board
 ![calliope editor](docs/calliope_editor.png)
+1. Connect calliope mini v3 device from the [Calliope Editor](https://python.calliope.cc/).
+2. Copy and paste the code from `calliope_code.py` to the editor and upload the code to the device.
+3. Connect ECG board to calliope device at `A1 RX` pin
+
+### ECG Stream
+![ecg monitor](docs/ecg_monitor.png)
 
 (Note: Currently, the gui has only been tested on windows, but should work on other platforms as well.)
 
   1. Install Pixi: `winget install --id=prefix-dev.pixi`
   2. Set the `CALLIOPE_PORT` value in the `plot_ecg.py` file to match your device's location.  
   3. Run the App (will auto-install any dependencies): `pixi run python plot_ecg.py`
-  4. Use the scroll button on the mouse to zoom in and out, and drag the white threshold line in "Filtered Heartbeat Signal" to 
+  4. Use the scroll button on the mouse to zoom in and out, and drag the white threshold line in "Filtered Heartbeat Signal" to just below the maximum point where a heartbeat signal happens!  You'll know it's working from the terminal: "Heartbead detected" will be printed each time the filtered signal goes above the threshold line.
 
 
 ## iBOTS Heart Jump Game
