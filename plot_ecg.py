@@ -49,10 +49,8 @@ def update_plot():
     to_filter = updated_data_y[-20:]
     coeffs = pywt.wavedec(to_filter, 'db4', level=4) 
     detail_coeffs = coeffs[-1]
-    threshold = 0.4
-    threshold_value = np.std(detail_coeffs) * threshold
     heartbeat_x.append(heartbeat_x[-1]+1 if heartbeat_x else 0)
-    heartbeat_y.append(threshold_value.item())
+    heartbeat_y.append((np.std(detail_coeffs) * 0.4).item())
     dpg.configure_item('filtered_line', x=list(heartbeat_x), y=list(heartbeat_y))
     dpg.fit_axis_data("filtered_xaxis")
     ####
