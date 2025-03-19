@@ -7,6 +7,10 @@ from collections import deque
 import serial
 import struct
 
+
+fmt = "h"
+packet_size = struct.calcsize(fmt)
+buffer = bytearray()
 ser = serial.Serial('COM3', baudrate=9600)
 
 
@@ -17,9 +21,14 @@ data_x = deque(maxlen=DEQUE_MAX_LEN)
 data_y = deque(maxlen=DEQUE_MAX_LEN)
 
 def generate_data():
-    packet = ser.read(2)
-    data_x.append(time.time())
-    data_y.append(struct.unpack("h", packet)[0])
+    global buffer
+    if ser.in_waiting:
+        buffer.extend(ser.read(ser.in_waiting))
+    
+    while len(buffer) >= packet_size:
+        packet, buffer = buffer[:packet_size], buffer[packet_size:]
+        data_x.append(time.time())
+        data_y.append(struct.unpack(fmt, packet)[0])
     return list(data_x), list(data_y)
 
 def update_plot():
