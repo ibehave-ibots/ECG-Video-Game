@@ -25,7 +25,8 @@ heartbeat_x = deque(maxlen=DEQUE_MAX_LEN)
 heartbeat_y = deque(maxlen=DEQUE_MAX_LEN)
 event_x = deque(maxlen=DEQUE_MAX_LEN)
 event_y = deque(maxlen=DEQUE_MAX_LEN)
-thresohld = 50
+threshold = 50
+is_beating = False
 
 def generate_data():
     global buffer
@@ -49,9 +50,22 @@ def update_plot():
     to_filter = updated_data_y[-20:]
     coeffs = pywt.wavedec(to_filter, 'db4', level=4) 
     heartbeat_x.append(heartbeat_x[-1]+1 if heartbeat_x else 0)
-    heartbeat_y.append((np.std(coeffs[-1]) * 0.4).item())
+    filtered_point = (np.std(coeffs[-1]) * 0.4)
+    heartbeat_y.append(filtered_point.item())
     dpg.configure_item('filtered_line', x=list(heartbeat_x), y=list(heartbeat_y))
     dpg.fit_axis_data("filtered_xaxis")
+
+
+    global threshold
+    global is_beating
+    if filtered_point >= threshold:
+        if not is_beating:
+            print('Heartbeat detected')
+            is_beating = True
+    else:
+        if is_beating:
+            print('End of Heartbeat.')
+            is_beating = False
     ####
 
 with dpg.window():
@@ -63,8 +77,8 @@ with dpg.window():
 
 # Filtered signal window
 def set_threshold(sender):
-    global thresohld
-    thresohld = dpg.get_value(sender)
+    global threshold
+    threshold = dpg.get_value(sender)
 
 
 
@@ -73,7 +87,7 @@ with dpg.window(label="Filtered Heartbeat Signal"):
         dpg.add_plot_axis(dpg.mvXAxis, label="Time", tag="filtered_xaxis", time=True, no_tick_labels=True)
         dpg.add_plot_axis(dpg.mvYAxis, label="Filtered Amplitude", tag="filtered_yaxis")
         dpg.add_line_series([], [], tag='filtered_line', parent="filtered_yaxis")
-        dpg.add_drag_line(label='Threshold', default_value=thresohld, vertical=False, callback=set_threshold)
+        dpg.add_drag_line(label='Threshold', default_value=threshold, vertical=False, callback=set_threshold)
 
 
 dpg.create_viewport(width=900, height=600, title='Updating plot data')
