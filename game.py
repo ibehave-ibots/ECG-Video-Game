@@ -1,3 +1,4 @@
+import random
 import pyxel
 import socket
 
@@ -34,9 +35,10 @@ pyxel.load('assets.pyxres')
 heart_img = dict(img=0, u=16, v=0, w=8, h=8, colkey=0)
 ground_img = dict(img=0, u=24, v=0, w=8, h=8, colkey=0)
 robot_img = dict(img=0, u=0, v=0, w=16, h=16, colkey=0)
+cloud_img = dict(img=0, u=32, v=0, w=16, h=16, colkey=0)
 
 # Game State
-game = dict(x=0, y_pos = 0, y_vel = 0, gravity = 0.2, strength = 4, score = 0, hearts=[])
+game = dict(x=0, y_pos = 0, y_vel = 0, gravity = 0.2, strength = 4, score = 0, hearts=[], clouds=[])
 
 
 def update():
@@ -67,13 +69,32 @@ def update():
         if heart['x'] < game['x'] - 25:
             game['hearts'].remove(heart)
 
+    if random.random() < .004:
+        game['clouds'].append(dict(x=160, y=random.randint(15, 30)))
+
+
+    if game['x'] % 4:
+        for cloud in game['clouds']:
+            cloud['x'] -= 1
+
+
+
 
 def draw():
     pyxel.cls(6)
+
+    # Move Ground
     x_offset = game['x'] % 8
     for x in range(0, 168, 8):
         pyxel.blt(x=x-x_offset, y=80-8, **ground_img)
+    
+    # Move Clouds
+    for cloud in game['clouds']:
+        
+        pyxel.blt(**(cloud_img | cloud))
 
+    
+    # Move Hearts
     for heart_obj in game['hearts']:
         pyxel.blt(x=16 + (heart_obj['x'] - game['x']), y=30, **heart_img)
 
