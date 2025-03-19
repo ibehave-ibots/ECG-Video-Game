@@ -43,7 +43,6 @@ def update():
     game['x'] += 1
     if game['y_pos'] == 0 and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_B)):
         game['y_vel'] = 4
-        print('jump')
     if game['y_pos'] >= 0:
         game['y_vel'] -= game['gravity']
         game['y_pos'] += game['y_vel']
@@ -58,17 +57,14 @@ def update():
         add_heart(hearts=game['hearts'])
 
     if game['hearts'] and game['y_pos'] > 30:
-        print(game['hearts'][0], game['x'], game['y_pos'], len(game['hearts']))
         for heart in game['hearts']:
             rel_heart_pos = game['hearts'][0]['x'] - game['x']
             if -10 < rel_heart_pos < 10:
-                print('score!')
                 game['score'] += 1
                 game['hearts'] = game['hearts'][1:]
 
     for heart in game['hearts']:
         if heart['x'] < game['x'] - 25:
-            print('missed a beat...')
             game['hearts'].remove(heart)
 
 
