@@ -20,9 +20,11 @@ def check_for_heartbeat_from_server(socket: socket.socket) -> bool:
         
 
 
+def add_heart(hearts: list[dict]):
+    hearts.append(dict(x=game['x'] + 140, y=20))
+
+
 client_socket = create_udp_socket()
-
-
 
 
 pyxel.init(160, 80, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAPE)
@@ -35,10 +37,6 @@ robot_img = dict(img=0, u=0, v=0, w=16, h=16, colkey=0)
 
 # Game State
 game = dict(x=0, y_pos = 0, y_vel = 0, gravity = 0.2, strength = 4, score = 0, hearts=[])
-
-def add_heart(hearts: list[dict]):
-    hearts.append(dict(x=game['x'] + 140, y=20))
-
 
 
 def update():
@@ -59,10 +57,20 @@ def update():
     if heart_button_pressed or heart_signal_received:
         add_heart(hearts=game['hearts'])
 
-    if game['hearts'] and game['y_pos'] > 30 and -10 < (game['hearts'][0]['x'] - game['x']) < 10:
-        print('score!')
-        game['score'] += 1
-        game['hearts'] = game['hearts'][1:]
+    if game['hearts'] and game['y_pos'] > 30:
+        print(game['hearts'][0], game['x'], game['y_pos'], len(game['hearts']))
+        for heart in game['hearts']:
+            rel_heart_pos = game['hearts'][0]['x'] - game['x']
+            if -10 < rel_heart_pos < 10:
+                print('score!')
+                game['score'] += 1
+                game['hearts'] = game['hearts'][1:]
+
+    for heart in game['hearts']:
+        if heart['x'] < game['x'] - 25:
+            print('missed a beat...')
+            game['hearts'].remove(heart)
+
 
 def draw():
     pyxel.cls(6)
