@@ -75,10 +75,10 @@ def update():
     if random.random() < .004:
         game['clouds'].append(dict(x=160, y=random.randint(15, 30)))
 
-
-    if game['x'] % 4:
-        for cloud in game['clouds']:
-            cloud['x'] -= 1
+    
+    
+    for cloud in game['clouds']:
+        cloud['x'] -= 0.2
 
     # If two hearts are too close together, they should join like bubbles and float up out of reach.
     if len(game['hearts']) > 1:
