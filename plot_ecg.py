@@ -8,6 +8,16 @@ from collections import deque
 
 import serial
 import struct
+import socket
+
+
+
+# Create a UDP socket
+SERVER_ADDRESS = ("localhost", 5005)  # You can replace 'localhost' with '' for any interface
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+server_socket.bind(SERVER_ADDRESS)
+print(f"UDP server started on {SERVER_ADDRESS}.")
 
 
 fmt = "h"
@@ -61,6 +71,7 @@ def update_plot():
     if filtered_point >= threshold:
         if not is_beating:
             print('Heartbeat detected')
+            server_socket.sendto(b"H", ("<broadcast>", 5005))
             is_beating = True
     else:
         if is_beating:
