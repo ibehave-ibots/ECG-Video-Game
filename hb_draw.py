@@ -6,7 +6,7 @@ import time
 import pyxel
 import numpy as np
 from scipy.signal import savgol_filter
-
+from scipy.interpolate import CubicSpline
 
 
 class LineDrawTool:
@@ -37,7 +37,10 @@ class LineDrawTool:
     def update_filtered_line(self) -> None:
         self.line_filtered = savgol_filter(self.line, window_length=9, polyorder=1).tolist()
 
-
+    def get_upsampled(self, spacing: float = .1) -> np.array:
+        line = self.line_filtered
+        interp = CubicSpline(x = np.arange(len(line)), y=line)
+        return interp(np.arange(0, len(line), spacing))
 
 
 screen_width = 150
@@ -72,6 +75,10 @@ def draw():
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
     for x, point in enumerate(line_draw_tool.line_filtered):
         pyxel.pset(x=x, y=point, col=0)
+
+    new_line = line_draw_tool.get_upsampled(spacing=3).tolist() * 3
+    for x, point in enumerate(new_line[:]):
+        pyxel.pset(x=x, y=(point-75)/3 + 15, col=15)
 
     
 
