@@ -23,24 +23,23 @@ class LineDrawTool:
 
     def start_recording(self, x: int, y: int) -> None:
         self.line[x] = y
-        self.line_filtered[x] = y
         last_x = self.last_x
         if last_x is not None:
             x0, x1 = (x, last_x) if x < last_x else (last_x, x)
             for _x in range(x0, x1):
                 self.line[_x] = y
-                self.line_filtered[_x] = y
         self.last_x = x
 
     def stop_recording(self) -> None:
         self.last_x = None
 
-    # def update_filtered_line(self) -> None:
-    #     running_window_width = 6
-    #     half_width = int(running_window_width / 2)
-    #     for idx in range(half_width - 1, len(line) - half_width):
-    #         line_filtered[idx] = int(sum(line[idx-half_width:idx+half_width]) / (half_width * 2))
-    #     self.last_x = None
+    def update_filtered_line(self) -> None:
+        running_window_width = 6
+        half_width = int(running_window_width / 2)
+        line = self.line
+        line_filtered = self.line_filtered
+        for idx in range(half_width, len(line) - half_width):
+            line_filtered[idx] = int(sum(line[idx-half_width:idx+half_width]) / (half_width * 2))
 
 
 
@@ -62,6 +61,8 @@ def update():
     else:
         line_draw_tool.stop_recording()
 
+    line_draw_tool.update_filtered_line()
+
     if pyxel.btnp(pyxel.KEY_SPACE):
         line_draw_tool.reset()
         
@@ -73,7 +74,7 @@ def draw():
 
     # Drawing area
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
-    for x, point in enumerate(line_draw_tool.line):
+    for x, point in enumerate(line_draw_tool.line_filtered):
         pyxel.pset(x=x, y=point, col=0)
 
     
