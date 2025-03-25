@@ -22,8 +22,8 @@ DAQ_TYPE: Literal['SineWave', 'Calliope'] = 'SineWave'
 def create_udp_server(ip: str, port: int) -> socket.socket:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    server_socket.bind(SERVER_ADDRESS)
-    print(f"UDP server started on {SERVER_ADDRESS}.")
+    server_socket.bind((ip, port))
+    print(f"UDP server started on {(ip, port)}.")
     return server_socket
 
 
@@ -122,7 +122,7 @@ def update_plot():
     if filtered_point >= threshold:
         if not is_beating:
             print('Heartbeat detected')
-            server_socket.sendto(b"H", ("<broadcast>", 5005))
+            server_socket.sendto(b"H", ("<broadcast>", SERVER_ADDRESS[1]))
             is_beating = True
     else:
         if is_beating:

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from math import sin
 import random
+import socket
 from statistics import mean
+import struct
 import time
 import pyxel
 import numpy as np
@@ -40,7 +42,7 @@ class LineDrawTool:
     def get_upsampled(self, spacing: float = .1) -> np.array:
         line = self.line_filtered
         interp = CubicSpline(x = np.arange(len(line)), y=line)
-        return interp(np.arange(0, len(line), spacing))
+        return interp(np.arange(0, len(line), spacing)).astype(int)
     
 
 def daq_simulator(data: list, samprate=100):
@@ -48,7 +50,7 @@ def daq_simulator(data: list, samprate=100):
     last_x = 0
     while True:
         curr_t = time.time()
-        n_samps = int(round((curr_t - last_t) * samprate))
+        n_samps = int(round((curr_t - last_t) * samprate / .01))
         to_x = last_x + n_samps
         data_to_send = (data * 2)[last_x:to_x]
         last_x = len(data) - to_x if to_x >= len(data) else to_x
@@ -56,12 +58,21 @@ def daq_simulator(data: list, samprate=100):
         data = yield to_x, data_to_send
             
 
+# Create a UDP socket
+def create_udp_server(ip: str, port: int) -> socket.socket:
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    server_socket.bind((ip, port))
+    print(f"UDP server started on {(ip, port)}.")
+    return server_socket
 
 screen_width = 150
+PORT = 5006
 line_draw_tool = LineDrawTool(x_min=0, x_max=screen_width, default_y=0)
-daq = daq_simulator(line_draw_tool.get_upsampled(spacing=5), samprate=20000)
+daq = daq_simulator(line_draw_tool.get_upsampled(spacing=.1), samprate=5)
 next(daq)
 curr_x = 0
+server_socket = create_udp_server(ip='localhost', port=PORT)
 
 def update():
     if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
@@ -82,7 +93,9 @@ def update():
         line_draw_tool.reset()
         
     curr_point, to_send = daq.send(line_draw_tool.get_upsampled(spacing=.01))
-    print(np.mean(to_send))
+    print(to_send)
+    packet = struct.pack('H'*len(to_send), *to_send)
+    server_socket.sendto(packet, ("<broadcast>", PORT))
     global curr_x
     curr_x = int(curr_point * .01)
 
