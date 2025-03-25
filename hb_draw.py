@@ -41,11 +41,27 @@ class LineDrawTool:
         line = self.line_filtered
         interp = CubicSpline(x = np.arange(len(line)), y=line)
         return interp(np.arange(0, len(line), spacing))
+    
+
+def daq_simulator(data: list, samprate=100):
+    last_t = time.time()
+    last_x = 0
+    while True:
+        curr_t = time.time()
+        n_samps = int(round((curr_t - last_t) * samprate))
+        to_x = last_x + n_samps
+        data_to_send = (data * 2)[last_x:to_x]
+        last_x = len(data) - to_x if to_x >= len(data) else to_x
+        last_t = curr_t
+        data = yield to_x, data_to_send
+            
 
 
 screen_width = 150
 line_draw_tool = LineDrawTool(x_min=0, x_max=screen_width, default_y=int(screen_width // 2))
-
+daq = daq_simulator(line_draw_tool.get_upsampled(spacing=5), samprate=20000)
+next(daq)
+curr_x = 0
 
 def update():
     if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
@@ -65,14 +81,18 @@ def update():
     if pyxel.btnp(pyxel.KEY_SPACE):
         line_draw_tool.reset()
         
-    
-
+    curr_point, to_send = daq.send(line_draw_tool.get_upsampled(spacing=.01))
+    print(np.mean(to_send))
+    global curr_x
+    curr_x = int(curr_point * .01)
 
 def draw():
     pyxel.cls(col=7)
 
     # Drawing area
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
+    pyxel.line(x1=curr_x, x2=curr_x, y1=30, y2=129, col=14)
+
     for x, point in enumerate(line_draw_tool.line_filtered):
         pyxel.pset(x=x, y=point, col=0)
 
@@ -80,6 +100,7 @@ def draw():
     for x, point in enumerate(new_line[:]):
         pyxel.pset(x=x, y=(point-75)/3 + 15, col=15)
 
+    
     
 
 pyxel.init(width=screen_width, height=150, title="Draw an ECG Wave!", quit_key=pyxel.KEY_ESCAPE, fps=60)
