@@ -58,7 +58,7 @@ def daq_simulator(data: list, samprate=100):
 
 
 screen_width = 150
-line_draw_tool = LineDrawTool(x_min=0, x_max=screen_width, default_y=int(screen_width // 2))
+line_draw_tool = LineDrawTool(x_min=0, x_max=screen_width, default_y=0)
 daq = daq_simulator(line_draw_tool.get_upsampled(spacing=5), samprate=20000)
 next(daq)
 curr_x = 0
@@ -66,13 +66,13 @@ curr_x = 0
 def update():
     if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
         global last_x
-        x, y = pyxel.mouse_x, pyxel.mouse_y
+        x = pyxel.mouse_x
         if x > screen_width:
             x = screen_width
         elif x < 0:
             x = 0
         x = x-1  # convert to 0-index
-        line_draw_tool.start_recording(x=x, y=y)
+        line_draw_tool.start_recording(x=x, y=-(pyxel.mouse_y - 75))
     else:
         line_draw_tool.stop_recording()
 
@@ -94,11 +94,11 @@ def draw():
     pyxel.line(x1=curr_x, x2=curr_x, y1=30, y2=129, col=14)
 
     for x, point in enumerate(line_draw_tool.line_filtered):
-        pyxel.pset(x=x, y=point, col=0)
+        pyxel.pset(x=x, y=-point+75, col=0)
 
     new_line = line_draw_tool.get_upsampled(spacing=3).tolist() * 3
     for x, point in enumerate(new_line[:]):
-        pyxel.pset(x=x, y=(point-75)/3 + 15, col=15)
+        pyxel.pset(x=x, y=-point/3 + 15, col=15)
 
     
     
