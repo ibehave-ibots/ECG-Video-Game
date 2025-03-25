@@ -1,3 +1,4 @@
+from typing import Literal
 import dearpygui.dearpygui as dpg
 import math
 import time
@@ -13,21 +14,72 @@ import socket
 
 ######## Parameters ######
 CALLIOPE_PORT = 'COM3'
-
+SERVER_ADDRESS = ("localhost", 5005)  
+DAQ_TYPE: Literal['SineWave', 'Calliope'] = 'SineWave'
 ##########################
 
 # Create a UDP socket
-SERVER_ADDRESS = ("localhost", 5005)  # You can replace 'localhost' with '' for any interface
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-server_socket.bind(SERVER_ADDRESS)
-print(f"UDP server started on {SERVER_ADDRESS}.")
+def create_udp_server(ip: str, port: int) -> socket.socket:
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    server_socket.bind(SERVER_ADDRESS)
+    print(f"UDP server started on {SERVER_ADDRESS}.")
+    return server_socket
 
 
-fmt = "h"
-packet_size = struct.calcsize(fmt)
-buffer = bytearray()
-ser = serial.Serial(CALLIOPE_PORT, baudrate=9600)
+class CalliopeDAQ:
+
+    def __init__(self, serial_port):
+        self._fmt = "h"
+        self._packet_size = struct.calcsize(self._fmt)
+        self._buffer = bytearray()
+        self._ser: serial.Serial = serial.Serial(serial_port, baudrate=9600)
+
+    def read(self) -> tuple[list[float], list[float]]:
+        ser = self._ser
+        in_waiting = ser.in_waiting
+        fmt = self._fmt
+        buffer = self._buffer
+        packet_size = self._packet_size
+        timestamps, measurements = [], []
+        if in_waiting:
+            buffer.extend(ser.read(in_waiting))
+        while len(buffer) >= packet_size:
+            packet, buffer = buffer[:packet_size], buffer[packet_size:]
+            timestamps.append(time.time())
+            measurements.append(struct.unpack(fmt, packet)[0])
+        self._buffer = buffer
+        return timestamps, measurements
+
+
+class SinewaveDAQ:
+
+    def __init__(self, hz=3):
+        self._hz = hz
+
+    def read(self) -> tuple[list[float], list[float]]:
+        times, values = [], []
+        pi = math.pi
+        hz = self._hz
+        for _ in range(10):
+            time.sleep(.0001)
+            t = time.time()
+            times.append(t)
+            values.append(math.sin(t * 2 * pi * hz))
+        return times, values
+
+
+
+
+server_socket = create_udp_server(ip=SERVER_ADDRESS[0], port=SERVER_ADDRESS[1])
+match DAQ_TYPE.lower():
+    case 'sinewave':
+        daq = SinewaveDAQ()
+    case 'calliope': 
+        daq = CalliopeDAQ(serial_port=CALLIOPE_PORT)
+    case _:
+        raise ValueError(f"Unrecognized DAQ_TYPE: {DAQ_TYPE}")
+
 
 
 dpg.create_context()
@@ -43,18 +95,13 @@ threshold = 50
 is_beating = False
 
 def generate_data():
-    global buffer
-    if ser.in_waiting:
-        buffer.extend(ser.read(ser.in_waiting))
-    
-    while len(buffer) >= packet_size:
-        packet, buffer = buffer[:packet_size], buffer[packet_size:]
-        data_x.append(time.time())
-        data_y.append(struct.unpack(fmt, packet)[0])
+    x, y = daq.read()
+    data_x.extend(x)
+    data_y.extend(y)
     return list(data_x), list(data_y)
 
 def update_plot():
-    updated_data_x, updated_data_y = generate_data()
+    updated_data_x, updated_data_y = generate_data()    
     dpg.configure_item('line', x=updated_data_x, y=updated_data_y)
     if dpg.get_value("auto_fit_checkbox"):
         dpg.fit_axis_data("xaxis")
