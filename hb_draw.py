@@ -9,10 +9,6 @@ screen_width = 150
 line = [int(screen_width // 2)] * screen_width
 line_filtered = line.copy()
 last_x = None
-output_buffer = [0] * screen_width
-current_time = time.time()
-last_out = 0
-curr_out = 0
 
 def update():
     if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
@@ -46,22 +42,6 @@ def update():
             line[idx] = reset_y
             line_filtered[idx] = reset_y
         
-    global curr_out, last_out
-    curr_out = int((time.time() * 200) % screen_width)
-    screen_perc = curr_out / screen_width
-    last_screen_perc = last_out / screen_width
-    
-    if last_out is not None:
-        line_to_read = line_filtered * 4
-        for _x in range(last_out, curr_out):
-            __x = _x * 3
-            val = mean(line_to_read[__x:__x+5])
-            output_buffer[_x] = val - 75
-    last_out = curr_out
-
-            
-
-        
     
 
 
@@ -72,12 +52,6 @@ def draw():
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
     for x, point in enumerate(line_filtered):
         pyxel.pset(x=x, y=point, col=0)
-
-    # Output Area
-    pyxel.line(x1=curr_out, x2=curr_out, y1=2, y2=28, col=10)
-
-    for x, point in enumerate(output_buffer):
-        pyxel.pset(x=x, y=(point / 3 )+15, col=2)
 
     
 
