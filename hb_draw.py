@@ -5,6 +5,7 @@ from statistics import mean
 import time
 import pyxel
 import numpy as np
+from scipy.signal import savgol_filter
 
 
 
@@ -34,12 +35,7 @@ class LineDrawTool:
         self.last_x = None
 
     def update_filtered_line(self) -> None:
-        running_window_width = 6
-        half_width = int(running_window_width / 2)
-        line = self.line
-        line_filtered = self.line_filtered
-        for idx in range(half_width, len(line) - half_width):
-            line_filtered[idx] = int(sum(line[idx-half_width:idx+half_width]) / (half_width * 2))
+        self.line_filtered = savgol_filter(self.line, window_length=9, polyorder=1).tolist()
 
 
 
