@@ -15,9 +15,6 @@ from scipy.interpolate import CubicSpline
 Code snippets:
 self.line_filtered = savgol_filter(self.line, window_length=9, polyorder=1).tolist()
 
-interp = CubicSpline(x = np.arange(len(line)), y=line)
-return interp(np.arange(0, len(line), spacing)).astype(int)
-
 curr_point, to_send = daq.send(line_draw_tool.get_upsampled(spacing=.01))
 print(to_send)
 packet = struct.pack('H'*len(to_send), *to_send)

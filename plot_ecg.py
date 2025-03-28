@@ -69,6 +69,10 @@ class SinewaveDAQ:
         return times, values
 
 
+class DrawingDAQ:
+
+    def __init__(self):
+        pass
 
 
 server_socket = create_udp_server(ip=SERVER_ADDRESS[0], port=SERVER_ADDRESS[1])
