@@ -106,7 +106,7 @@ def draw():
 
 
     hb_fun = generate_hb_fun(drawn_points=drawn_points, baseline=baseline_y)
-    hb_points = hb_fun(x=np.arange(150))
+    hb_points = hb_fun(x=list(range(150)))
     for x, y in enumerate(hb_points, start=1):
         pyxel.pset(x=x, y=y, col=12)
 
