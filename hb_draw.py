@@ -56,14 +56,17 @@ server_socket.sendto(packet, ("<broadcast>", PORT))
 
 
 def generate_hb_fun(drawn_points: dict[int, int], baseline: int) -> Callable:
-    if len(drawn_points) > 5:
-        x, y = zip(*list(sorted(drawn_points.items())))
-        x = (-23, -17, -11, -8, -5, -4, -3, -2, -1) + x + (151, 152, 153, 154, 155, 158, 161, 167, 173)
-        y = (baseline,) * 9 + y + (baseline,) * 9
+    if len(drawn_points) > 2:
+        # Make data converge to baseline
+        points = drawn_points.copy()
+        for x in (-23, -17, -11, -8, -5, -4, -3, -2, -1, 151, 152, 153, 154, 155, 158, 161, 167, 173):
+            points[x] = baseline
+
+        x, y = zip(*list(sorted(points.items())))
         interp_fun = CubicSpline(x=x, y=y)
         return interp_fun
     else:
-        return lambda x: x
+        return lambda x: [baseline] * len(x)
         
 
 
@@ -102,15 +105,13 @@ def draw():
     pyxel.line(x1=0, x2=150, y1=baseline_y, y2=baseline_y, col=3)
 
 
-    if len(drawn_points) > 5:
-        x, y = zip(*list(sorted(drawn_points.items())))
-        x = (-23, -17, -11, -8, -5, -4, -3, -2, -1) + x + (151, 152, 153, 154, 155, 158, 161, 167, 173)
-        y = (baseline_y,) * 9 + y + (baseline_y,) * 9
-        interp_fun = CubicSpline(x=x, y=y)
+    hb_fun = generate_hb_fun(drawn_points=drawn_points, baseline=baseline_y)
+    hb_points = hb_fun(x=np.arange(150))
+    for x, y in enumerate(hb_points, start=1):
+        pyxel.pset(x=x, y=y, col=12)
 
-        line_interp = interp_fun(x=np.arange(150))
-        for x, y in enumerate(line_interp, start=1):
-            pyxel.pset(x=x, y=y, col=12)
+    for x, y in drawn_points.items():
+        pyxel.pset(x=x, y=y, col=0)
 
 
 
