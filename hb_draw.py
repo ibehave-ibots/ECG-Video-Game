@@ -5,6 +5,7 @@ import socket
 from statistics import mean
 import struct
 import time
+from typing import Callable, Sequence
 import pyxel
 import numpy as np
 from scipy.signal import savgol_filter
@@ -54,6 +55,18 @@ server_socket.sendto(packet, ("<broadcast>", PORT))
 # server_socket = create_udp_server(ip='localhost', port=PORT)
 
 
+def generate_hb_fun(drawn_points: dict[int, int], baseline: int) -> Callable:
+    if len(drawn_points) > 5:
+        x, y = zip(*list(sorted(drawn_points.items())))
+        x = (-23, -17, -11, -8, -5, -4, -3, -2, -1) + x + (151, 152, 153, 154, 155, 158, 161, 167, 173)
+        y = (baseline,) * 9 + y + (baseline,) * 9
+        interp_fun = CubicSpline(x=x, y=y)
+        return interp_fun
+    else:
+        return lambda x: x
+        
+
+
 drawn_points = {}
 baseline_y = 100
 last_x = None
@@ -88,19 +101,16 @@ def draw():
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
     pyxel.line(x1=0, x2=150, y1=baseline_y, y2=baseline_y, col=3)
 
-    for x, y in drawn_points.items():
-        pyxel.pset(x=x, y=y, col=0)
 
     if len(drawn_points) > 5:
         x, y = zip(*list(sorted(drawn_points.items())))
-        x = (-5, -4, -3, -2, -1) + x + (151, 152, 153, 154, 155)
-        y = (baseline_y,) * 5 + y + (baseline_y,) * 5
+        x = (-23, -17, -11, -8, -5, -4, -3, -2, -1) + x + (151, 152, 153, 154, 155, 158, 161, 167, 173)
+        y = (baseline_y,) * 9 + y + (baseline_y,) * 9
         interp_fun = CubicSpline(x=x, y=y)
 
         line_interp = interp_fun(x=np.arange(150))
         for x, y in enumerate(line_interp, start=1):
-            pyxel.pset(x=x, y=y, col=15)
-
+            pyxel.pset(x=x, y=y, col=12)
 
 
 
