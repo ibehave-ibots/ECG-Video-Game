@@ -10,113 +10,104 @@ import numpy as np
 from scipy.signal import savgol_filter
 from scipy.interpolate import CubicSpline
 
+"""
+Code snippets:
+self.line_filtered = savgol_filter(self.line, window_length=9, polyorder=1).tolist()
 
-class LineDrawTool:
+interp = CubicSpline(x = np.arange(len(line)), y=line)
+return interp(np.arange(0, len(line), spacing)).astype(int)
 
-    def __init__(self, x_min: int, x_max: int, default_y: int):
-        self.x_min = x_min
-        self.x_max = x_max
-        self.last_x = None
-        self.default_y = default_y
-        self.reset()
+curr_point, to_send = daq.send(line_draw_tool.get_upsampled(spacing=.01))
+print(to_send)
+packet = struct.pack('H'*len(to_send), *to_send)
+server_socket.sendto(packet, ("<broadcast>", PORT))
+"""
 
-    def reset(self):
-        self.line = [self.default_y] * (self.x_max - self.x_min)
-        self.line_filtered = self.line.copy()
 
-    def start_recording(self, x: int, y: int) -> None:
-        self.line[x] = y
-        last_x = self.last_x
-        if last_x is not None:
-            x0, x1 = (x, last_x) if x < last_x else (last_x, x)
-            for _x in range(x0, x1):
-                self.line[_x] = y
-        self.last_x = x
-
-    def stop_recording(self) -> None:
-        self.last_x = None
-
-    def update_filtered_line(self) -> None:
-        self.line_filtered = savgol_filter(self.line, window_length=9, polyorder=1).tolist()
-
-    def get_upsampled(self, spacing: float = .1) -> np.array:
-        line = self.line_filtered
-        interp = CubicSpline(x = np.arange(len(line)), y=line)
-        return interp(np.arange(0, len(line), spacing)).astype(int)
     
 
-def daq_simulator(data: list, samprate=100):
-    last_t = time.time()
-    last_x = 0
-    while True:
-        curr_t = time.time()
-        n_samps = int(round((curr_t - last_t) * samprate / .01))
-        to_x = last_x + n_samps
-        data_to_send = (data * 2)[last_x:to_x]
-        last_x = len(data) - to_x if to_x >= len(data) else to_x
-        last_t = curr_t
-        data = yield to_x, data_to_send
+# def daq_simulator(data: list, samprate=100):
+#     last_t = time.time()
+#     last_x = 0
+#     while True:
+#         curr_t = time.time()
+#         n_samps = int(round((curr_t - last_t) * samprate / .01))
+#         to_x = last_x + n_samps
+#         data_to_send = (data * 2)[last_x:to_x]
+#         last_x = len(data) - to_x if to_x >= len(data) else to_x
+#         last_t = curr_t
+#         data = yield to_x, data_to_send
             
 
-# Create a UDP socket
-def create_udp_server(ip: str, port: int) -> socket.socket:
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    server_socket.bind((ip, port))
-    print(f"UDP server started on {(ip, port)}.")
-    return server_socket
+# # Create a UDP socket
+# def create_udp_server(ip: str, port: int) -> socket.socket:
+#     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+#     server_socket.bind((ip, port))
+#     print(f"UDP server started on {(ip, port)}.")
+#     return server_socket
 
-screen_width = 150
-PORT = 5006
-line_draw_tool = LineDrawTool(x_min=0, x_max=screen_width, default_y=0)
-daq = daq_simulator(line_draw_tool.get_upsampled(spacing=.1), samprate=5)
-next(daq)
-curr_x = 0
-server_socket = create_udp_server(ip='localhost', port=PORT)
+
+# PORT = 5006
+# # daq = daq_simulator(line_draw_tool.get_upsampled(spacing=.1), samprate=5)
+# # next(daq)
+# server_socket = create_udp_server(ip='localhost', port=PORT)
+
+
+drawn_points = {}
+baseline_y = 100
+last_x = None
 
 def update():
+    global last_x
     if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-        global last_x
-        x = pyxel.mouse_x
-        if x > screen_width:
-            x = screen_width
-        elif x < 0:
-            x = 0
-        x = x-1  # convert to 0-index
-        line_draw_tool.start_recording(x=x, y=-(pyxel.mouse_y - 75))
+        mouse_x = pyxel.mouse_x
+        drawn_points[mouse_x] = pyxel.mouse_y
+        if last_x is not None and abs(mouse_x - last_x) >= 2:
+            for x in range(min(mouse_x, last_x) + 1, max(mouse_x, last_x)):
+                if x in drawn_points:
+                    del drawn_points[x]
+        last_x = mouse_x
     else:
-        line_draw_tool.stop_recording()
+        last_x = None
 
-    line_draw_tool.update_filtered_line()
-
-    if pyxel.btnp(pyxel.KEY_SPACE):
-        line_draw_tool.reset()
         
-    curr_point, to_send = daq.send(line_draw_tool.get_upsampled(spacing=.01))
-    print(to_send)
-    packet = struct.pack('H'*len(to_send), *to_send)
-    server_socket.sendto(packet, ("<broadcast>", PORT))
-    global curr_x
-    curr_x = int(curr_point * .01)
+
+    if pyxel.btnp(pyxel.KEY_SPACE):  # reset
+        drawn_points.clear()
+        
+        
+
+
+
 
 def draw():
     pyxel.cls(col=7)
 
     # Drawing area
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
-    pyxel.line(x1=curr_x, x2=curr_x, y1=30, y2=129, col=14)
+    pyxel.line(x1=0, x2=150, y1=baseline_y, y2=baseline_y, col=3)
 
-    for x, point in enumerate(line_draw_tool.line_filtered):
-        pyxel.pset(x=x, y=-point+75, col=0)
+    for x, y in drawn_points.items():
+        pyxel.pset(x=x, y=y, col=0)
 
-    new_line = line_draw_tool.get_upsampled(spacing=3).tolist() * 3
-    for x, point in enumerate(new_line[:]):
-        pyxel.pset(x=x, y=-point/3 + 15, col=15)
+    if len(drawn_points) > 5:
+        x, y = zip(*list(sorted(drawn_points.items())))
+        x = (-5, -4, -3, -2, -1) + x + (151, 152, 153, 154, 155)
+        y = (baseline_y,) * 5 + y + (baseline_y,) * 5
+        interp_fun = CubicSpline(x=x, y=y)
+
+        line_interp = interp_fun(x=np.arange(150))
+        for x, y in enumerate(line_interp, start=1):
+            pyxel.pset(x=x, y=y, col=15)
+
+
+
 
     
     
 
-pyxel.init(width=screen_width, height=150, title="Draw an ECG Wave!", quit_key=pyxel.KEY_ESCAPE, fps=60)
+pyxel.init(width=150, height=150, title="Draw an ECG Wave!", quit_key=pyxel.KEY_ESCAPE, fps=60)
 pyxel.mouse(True)
 
 
