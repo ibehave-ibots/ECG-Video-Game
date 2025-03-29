@@ -1,3 +1,4 @@
+from collections import deque
 from dataclasses import dataclass
 from math import sin
 import random
@@ -56,7 +57,7 @@ def generate_hb_fun(drawn_points: dict[int, int], baseline: int) -> Callable:
     if len(drawn_points) > 2:
         # Make data converge to baseline
         points = drawn_points.copy()
-        for x in (-23, -17, -11, -8, -5, -4, -3, -2, -1, 151, 152, 153, 154, 155, 158, 161, 167, 173):
+        for x in (-40, -30, -23, -17, -11, -8, -5, -4, -3, -2, -1, 151, 152, 153, 154, 155, 158, 161, 167, 173, 180, 190):
             points[x] = baseline
 
         x, y = zip(*list(sorted(points.items())))
@@ -66,10 +67,16 @@ def generate_hb_fun(drawn_points: dict[int, int], baseline: int) -> Callable:
         return lambda x: [baseline] * len(x)
         
 
+def get_sample(t, fun, samprate=100) -> float:
+    x = ((t * 100) % (150 * 2)) - 75
+    return fun([x])
+
 
 drawn_points = {}
 baseline_y = 100
 last_x = None
+hb_fun = generate_hb_fun(drawn_points=drawn_points, baseline=baseline_y)
+outputted_data = deque([], maxlen=150)
 
 def update():
     global last_x
@@ -88,9 +95,14 @@ def update():
 
     if pyxel.btnp(pyxel.KEY_SPACE):  # reset
         drawn_points.clear()
-        
-        
 
+    global hb_fun
+    hb_fun = generate_hb_fun(drawn_points=drawn_points, baseline=baseline_y)
+            
+    ys = get_sample(t=time.time(), fun=hb_fun)
+    outputted_data.extend(ys)
+    
+    
 
 
 
@@ -101,14 +113,22 @@ def draw():
     pyxel.rect(x=0, y=30, w=200, h=100, col=5)
     pyxel.line(x1=0, x2=150, y1=baseline_y, y2=baseline_y, col=3)
 
-
-    hb_fun = generate_hb_fun(drawn_points=drawn_points, baseline=baseline_y)
+    # Draw generated line
     hb_points = hb_fun(x=list(range(150)))
     for x, y in enumerate(hb_points, start=1):
         pyxel.pset(x=x, y=y, col=12)
 
+    # Draw inputted-points
     for x, y in drawn_points.items():
         pyxel.pset(x=x, y=y, col=0)
+
+
+    # Draw Full outputted-line
+    for x, y in enumerate(outputted_data, start=1):
+        pyxel.pset(x=x, y=y - 20, col=2)
+
+    
+
 
 
 
