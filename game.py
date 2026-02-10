@@ -27,15 +27,17 @@ def add_heart(hearts: list[dict]):
 
 client_socket = create_udp_socket()
 
-
-pyxel.init(160, 80, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAPE)
+SCREEN_WIDTH = 160
+SCREEN_HEIGHT = 80
+ROTATE_SCREEN = False
+pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAPE)
 
 # Art Assets
 pyxel.load('assets.pyxres')
 heart_img = dict(img=0, u=16, v=0, w=8, h=8, colkey=0)
 bigheart_img = dict(img=0, u=16, v=8, w=8, h=8, colkey=0)
 ground_img = dict(img=0, u=24, v=0, w=8, h=8, colkey=0)
-robot_img = dict(img=0, u=0, v=0, w=16, h=16, colkey=0)
+robot_img = dict(img=0, u=0, v=0, w=16, h=16, colkey=0, rotate=0)
 cloud_img = dict(img=0, u=32, v=0, w=16, h=16, colkey=0)
 
 # Game State
@@ -43,6 +45,11 @@ game = dict(x=0, y_pos = 0, y_vel = 0, gravity = 0.2, strength = 4, score = 0, h
 
 
 def update():
+    global ROTATE_SCREEN
+    rotate_button_pressed = pyxel.btnp(pyxel.KEY_R)
+    if rotate_button_pressed:
+        ROTATE_SCREEN = not ROTATE_SCREEN
+
     game['x'] += 1
     if game['y_pos'] == 0 and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_B)):
         game['y_vel'] = 4
@@ -98,31 +105,46 @@ def update():
             heart['x'] += 0.1
 
 
+def blit(**kwargs):
+    if ROTATE_SCREEN:
+        assert 'x' in kwargs
+        assert 'y' in kwargs
+        kwargs = kwargs.copy()
+
+        kwargs['rotate'] = 180
+        kwargs['x'] = SCREEN_WIDTH - kwargs['x'] - kwargs['w']
+        kwargs['y'] = SCREEN_HEIGHT - kwargs['y'] - kwargs['h']
+
+    pyxel.blt(**kwargs)
+
+def text(**kwargs):
+    ...  # don't show text, since we can't rotate it.
+
+
 def draw():
     pyxel.cls(6)
 
     # Move Ground
     x_offset = game['x'] % 8
     for x in range(0, 168, 8):
-        pyxel.blt(x=x-x_offset, y=80-8, **ground_img)
+        blit(x=x-x_offset, y=80-8, **ground_img)
     
     # Move Clouds
     for cloud in game['clouds']:
-        pyxel.blt(**(cloud_img | cloud))
+        blit(**(cloud_img | cloud))
 
     
     # Move Hearts
     for heart_obj in game['hearts']:
         x = 16 + (heart_obj['x'] - game['x'])
         if heart_obj['big']:
-            pyxel.blt(x=x, y=30-heart_obj['y'], **bigheart_img)
+            blit(x=x, y=30-heart_obj['y'], **bigheart_img)
         else:
-            pyxel.blt(x=x, y=30, **heart_img)
+            blit(x=x, y=30, **heart_img)
 
 
-    pyxel.blt(x=16, y=58 - round(game['y_pos']), **robot_img)
-    pyxel.text(x=4, y=10, s=f"Heartbeats Collected: {game['score']}", col=1)    
-    
+    blit(x=16, y=58 - round(game['y_pos']), **robot_img)
+    text(x=4, y=10, s=f"Heartbeats Collected: {game['score']}", col=1)    
 
 
 pyxel.run(update, draw)
