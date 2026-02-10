@@ -12,7 +12,7 @@ import socket
 
 
 ######## Parameters ######
-CALLIOPE_PORT = 'COM3'
+CALLIOPE_PORT = 'COM5'
 
 ##########################
 

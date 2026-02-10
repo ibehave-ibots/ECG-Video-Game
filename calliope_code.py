@@ -1,9 +1,6 @@
 import struct
-from random import randint
-from calliopemini import uart
-from calliopemini import *
+from calliopemini import uart, display, pin_A1_RX
 import time
-
 
 
 uart.init(baudrate=9600)
