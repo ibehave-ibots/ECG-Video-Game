@@ -30,6 +30,38 @@ buffer = bytearray()
 ser = serial.Serial(CALLIOPE_PORT, baudrate=9600)
 
 
+# Get the GAme Controller Acquisition Working
+import pygame
+import threading
+import time
+
+def controller_loop(shared_state):
+    pygame.init()
+    pygame.joystick.init()
+
+    if pygame.joystick.get_count() == 0:
+        raise RuntimeError("No controller found")
+    else:
+        print("controller found!")
+
+    js = pygame.joystick.Joystick(0)
+    js.init()
+
+    while True:
+        pygame.event.pump()  # required
+
+        shared_state["axes"] = [js.get_axis(i) for i in range(js.get_numaxes())]
+        shared_state["buttons"] = [js.get_button(i) for i in range(js.get_numbuttons())]
+
+        time.sleep(0.01)  # ~100 Hz
+
+shared = {}
+threading.Thread(target=controller_loop, args=(shared,), daemon=True).start()
+
+
+# Start DearPyGUI App
+
+
 dpg.create_context()
 
 DEQUE_MAX_LEN = 500
