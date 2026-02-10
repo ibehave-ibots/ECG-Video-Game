@@ -29,6 +29,7 @@ client_socket = create_udp_socket()
 
 SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 80
+ROTATE_SCREEN = False
 pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="iBOT Wants a Heart", fps=60, quit_key=pyxel.KEY_ESCAPE)
 
 # Art Assets
@@ -44,6 +45,11 @@ game = dict(x=0, y_pos = 0, y_vel = 0, gravity = 0.2, strength = 4, score = 0, h
 
 
 def update():
+    global ROTATE_SCREEN
+    rotate_button_pressed = pyxel.btnp(pyxel.KEY_R)
+    if rotate_button_pressed:
+        ROTATE_SCREEN = not ROTATE_SCREEN
+
     game['x'] += 1
     if game['y_pos'] == 0 and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_B)):
         game['y_vel'] = 4
@@ -100,13 +106,14 @@ def update():
 
 
 def blit(**kwargs):
-    assert 'x' in kwargs
-    assert 'y' in kwargs
-    kwargs = kwargs.copy()
+    if ROTATE_SCREEN:
+        assert 'x' in kwargs
+        assert 'y' in kwargs
+        kwargs = kwargs.copy()
 
-    kwargs['rotate'] = 180
-    kwargs['x'] = SCREEN_WIDTH - kwargs['x'] - kwargs['w']
-    kwargs['y'] = SCREEN_HEIGHT - kwargs['y'] - kwargs['h']
+        kwargs['rotate'] = 180
+        kwargs['x'] = SCREEN_WIDTH - kwargs['x'] - kwargs['w']
+        kwargs['y'] = SCREEN_HEIGHT - kwargs['y'] - kwargs['h']
 
     pyxel.blt(**kwargs)
 
@@ -138,7 +145,6 @@ def draw():
 
     blit(x=16, y=58 - round(game['y_pos']), **robot_img)
     text(x=4, y=10, s=f"Heartbeats Collected: {game['score']}", col=1)    
-    
 
 
 pyxel.run(update, draw)
