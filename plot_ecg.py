@@ -46,18 +46,37 @@ def controller_loop(shared_state):
 
     js = pygame.joystick.Joystick(0)
     js.init()
-
+    shared_state["axes"] = [js.get_axis(i) for i in range(js.get_numaxes())]
+    shared_state["buttons"] = [js.get_button(i) for i in range(js.get_numbuttons())]
     while True:
         pygame.event.pump()  # required
-
-        shared_state["axes"] = [js.get_axis(i) for i in range(js.get_numaxes())]
-        shared_state["buttons"] = [js.get_button(i) for i in range(js.get_numbuttons())]
-
+        new_state = {}
+        new_state["axes"] = [js.get_axis(i) for i in range(js.get_numaxes())]
+        new_state["buttons"] = [js.get_button(i) for i in range(js.get_numbuttons())]
+        new_state["buttons_pressed"] = [int(curr_pressed and not was_pressed) for curr_pressed, was_pressed in zip(new_state['buttons'], shared_state['buttons'])]
+        new_state["buttons_released"] = [int(not curr_pressed and was_pressed) for curr_pressed, was_pressed in zip(new_state['buttons'], shared_state['buttons'])]
+        shared_state.update(new_state)
         time.sleep(0.01)  # ~100 Hz
+
+
 
 shared = {}
 threading.Thread(target=controller_loop, args=(shared,), daemon=True).start()
 
+CONTROLLER_SERVER_ADDRESS = ("localhost", 5006)  # You can replace 'localhost' with '' for any interface
+controller_server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+controller_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+controller_server_socket.bind(CONTROLLER_SERVER_ADDRESS)
+print(f"Controller UDP server started on {CONTROLLER_SERVER_ADDRESS}.")
+
+
+def send_controller_state():
+    fmt = "h"
+    packet_size = struct.calcsize(fmt)
+    buffer = bytearray()
+    if any(shared['buttons_pressed']):
+        ...
+    
 
 # Start DearPyGUI App
 
