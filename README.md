@@ -40,7 +40,7 @@ Shopping List:
 
   1. Install Pixi: `winget install --id=prefix-dev.pixi`
   2. Set the `CALLIOPE_PORT` value in the `plot_ecg.py` file to match your device's location.  
-  3. Run the App (will auto-install any dependencies): `pixi run python plot_ecg.py`
+  3. Run the App (will auto-install any dependencies): `pixi run ecg`
   4. Use the scroll button on the mouse to zoom in and out, and drag the white threshold line in "Filtered Heartbeat Signal" to just below the maximum point where a heartbeat signal happens!  You'll know it's working from the terminal: "Heartbead detected" will be printed each time the filtered signal goes above the threshold line.
 
 
@@ -51,5 +51,5 @@ Shopping List:
 (Note: Currently, the game has only been tested on windows, but should work on other platforms as well.)
 
   1. Install Pixi: `winget install --id=prefix-dev.pixi`
-  2. Run the App (will auto-install any dependenci)s: `pixi run python game.py`
+  2. Run the App (will auto-install any dependenci)s: `pixi run game`
 

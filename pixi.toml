@@ -6,17 +6,24 @@ name = "DNO-1"
 platforms = ["win-64"]
 version = "0.1.0"
 
-[tasks]
-game = "python game.py"
-ecg = "python plot_ecg.py"
 
 [dependencies]
 python = "3.12.*"
 pip = ">=25.0.1,<26"
 
-[pypi-dependencies]
-dearpygui = ">=2.0.0, <3"
-pywavelets = ">=1.8.0, <2"
-numpy = ">=2.2.4, <3"
-pyserial = ">=3.5, <4"
-pyxel = ">=2.3.16, <3"
+
+[feature.game]
+pypi-dependencies = {pyxel = ">=2.3.16, <3"}
+tasks = { game = "python game.py" }
+
+
+[feature.ecg]
+pypi-dependencies = {dearpygui = ">=2.0.0, <3", pywavelets = ">=1.8.0, <2", numpy = ">=2.2.4, <3", pyserial = ">=3.5, <4"}
+tasks = {ecg = "python plot_ecg.py"}
+
+
+[environments]
+game = ["game"]
+ecg = ["ecg"]
+
+
