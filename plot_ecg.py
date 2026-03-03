@@ -1,111 +1,143 @@
-import dearpygui.dearpygui as dpg
-import math
-import time
-import numpy as np
-import pywt
-import random
 from collections import deque
+import math
+import random
+import socket
+import time
+import threading
+from typing import cast
 
+import dearpygui.dearpygui as dpg
+import numpy as np
 import serial
 import struct
-import socket
+import pygame
+import pywt
 
 
 ######## Parameters ######
 CALLIOPE_PORT = 'COM5'
+DEQUE_MAX_LEN = 500
+
+class SensorIn:
+
+    def __init__(self, serial_port: str = 'COM5', baudrate: int = 9600, max_len = 500) -> None:
+        try:
+            self._ser =  serial.Serial(CALLIOPE_PORT, baudrate=9600)
+            self._buffer = bytearray()
+        except Exception as exc:
+            self._ser = None
+
+        self._fmt = "h"
+        self._packet_size = struct.calcsize(self._fmt)
+        self.data_x: deque[float] = deque(maxlen=max_len)
+        self.data_y: deque[int] = deque(maxlen=max_len)
+
+    @property
+    def connected(self) -> bool:
+        return self._ser is not None
+    
+    def read(self) -> tuple[list, list] | None:
+        if self.connected:
+            fmt = self._fmt
+            packet_size = self._packet_size
+            buffer = self._buffer
+            data_x = self.data_x
+            data_y = self.data_y
+            ser = cast(serial.Serial, self._ser)
+
+            if ser.in_waiting:
+                buffer.extend(ser.read(ser.in_waiting))           
+            
+            while len(buffer) >= packet_size:
+                packet, buffer = buffer[:packet_size], buffer[packet_size:]
+                data_x.append(time.time())
+                data_y.append(struct.unpack(fmt, packet)[0])
+                self._buffer = buffer
+
+            return list(data_x), list(data_y)
+        else:
+            return None
+
+
+
+sensor_in = SensorIn(serial_port=CALLIOPE_PORT, baudrate=9600)
 
 ##########################
 
+
+class SensorOut:
+
+    def __init__(self, address: tuple[str, int] = ('localhost', 5005), debug: bool = True) -> None:
+        self.address = address
+        self.ip, self.port = address
+        self.debug = debug
+
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.connected = False
+
+        self._ongoing = False
+
+    def connect(self):
+        try:
+            self._socket.bind(self.address)
+            self.connected = True
+            if self.debug:
+                print(f"UDP server started on {SERVER_ADDRESS}.")
+        except Exception as exc:
+            if self.debug:
+                print(f"UDP server failed to connect on {SERVER_ADDRESS}.")
+
+
+    def send_hearbeat_event(self) -> None:
+        self._socket.sendto(b"H", ("<broadcast>", self.port))
+        if self.debug:
+            print("Heartbeat detected.")
+
+    def send_heartbeat_start_event(self, status: bool) -> None:
+        "only send whenever the status goes from False to True"
+        if status and not self._ongoing:
+            self.send_hearbeat_event()            
+        self._ongoing = status
+
+
+        
+
+
+            
+
+    
 # Create a UDP socket
 SERVER_ADDRESS = ("localhost", 5005)  # You can replace 'localhost' with '' for any interface
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-server_socket.bind(SERVER_ADDRESS)
-print(f"UDP server started on {SERVER_ADDRESS}.")
-
-
-fmt = "h"
-packet_size = struct.calcsize(fmt)
-buffer = bytearray()
-ser = serial.Serial(CALLIOPE_PORT, baudrate=9600)
-
-
-# Get the GAme Controller Acquisition Working
-import pygame
-import threading
-import time
-
-def controller_loop(shared_state):
-    pygame.init()
-    pygame.joystick.init()
-
-    if pygame.joystick.get_count() == 0:
-        raise RuntimeError("No controller found")
-    else:
-        print("controller found!")
-
-    js = pygame.joystick.Joystick(0)
-    js.init()
-    shared_state["axes"] = [js.get_axis(i) for i in range(js.get_numaxes())]
-    shared_state["buttons"] = [js.get_button(i) for i in range(js.get_numbuttons())]
-    while True:
-        pygame.event.pump()  # required
-        new_state = {}
-        new_state["axes"] = [js.get_axis(i) for i in range(js.get_numaxes())]
-        new_state["buttons"] = [js.get_button(i) for i in range(js.get_numbuttons())]
-        new_state["buttons_pressed"] = [int(curr_pressed and not was_pressed) for curr_pressed, was_pressed in zip(new_state['buttons'], shared_state['buttons'])]
-        new_state["buttons_released"] = [int(not curr_pressed and was_pressed) for curr_pressed, was_pressed in zip(new_state['buttons'], shared_state['buttons'])]
-        shared_state.update(new_state)
-        time.sleep(0.01)  # ~100 Hz
+sensor_out = SensorOut(address=SERVER_ADDRESS)
+sensor_out.connect()
 
 
 
-shared = {}
-threading.Thread(target=controller_loop, args=(shared,), daemon=True).start()
-
-CONTROLLER_SERVER_ADDRESS = ("localhost", 5006)  # You can replace 'localhost' with '' for any interface
-controller_server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-controller_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-controller_server_socket.bind(CONTROLLER_SERVER_ADDRESS)
-print(f"Controller UDP server started on {CONTROLLER_SERVER_ADDRESS}.")
-
-
-def send_controller_state():
-    fmt = "h"
-    packet_size = struct.calcsize(fmt)
-    buffer = bytearray()
-    if any(shared['buttons_pressed']):
-        ...
-    
+from controller import ControllerOut
+CONTROLLER_SERVER_ADDRESS = ('localhost', 5006)
+controller_out = ControllerOut(address=CONTROLLER_SERVER_ADDRESS)
+controller_out.start()
 
 # Start DearPyGUI App
 
 
 dpg.create_context()
 
-DEQUE_MAX_LEN = 500
-data_x = deque(maxlen=DEQUE_MAX_LEN)
-data_y = deque(maxlen=DEQUE_MAX_LEN)
+
+
 heartbeat_x = deque(maxlen=DEQUE_MAX_LEN)
 heartbeat_y = deque(maxlen=DEQUE_MAX_LEN)
-event_x = deque(maxlen=DEQUE_MAX_LEN)
-event_y = deque(maxlen=DEQUE_MAX_LEN)
 threshold = 50
-is_beating = False
 
-def generate_data():
-    global buffer
-    if ser.in_waiting:
-        buffer.extend(ser.read(ser.in_waiting))
-    
-    while len(buffer) >= packet_size:
-        packet, buffer = buffer[:packet_size], buffer[packet_size:]
-        data_x.append(time.time())
-        data_y.append(struct.unpack(fmt, packet)[0])
-    return list(data_x), list(data_y)
+sensor_in = SensorIn(serial_port=CALLIOPE_PORT, baudrate=9600, max_len=DEQUE_MAX_LEN)
+
 
 def update_plot():
-    updated_data_x, updated_data_y = generate_data()
+    reading = sensor_in.read()
+    if reading is None:
+        return
+    updated_data_x, updated_data_y = reading
     dpg.configure_item('line', x=updated_data_x, y=updated_data_y)
     if dpg.get_value("auto_fit_checkbox"):
         dpg.fit_axis_data("xaxis")
@@ -122,16 +154,8 @@ def update_plot():
 
 
     global threshold
-    global is_beating
-    if filtered_point >= threshold:
-        if not is_beating:
-            print('Heartbeat detected')
-            server_socket.sendto(b"H", ("<broadcast>", 5005))
-            is_beating = True
-    else:
-        if is_beating:
-            print('End of Heartbeat.')
-            is_beating = False
+    
+    sensor_out.send_heartbeat_start_event(status= filtered_point >= threshold)
     ####
 
 with dpg.window(label="Raw Heartbeat Signal"):

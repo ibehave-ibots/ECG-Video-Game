@@ -2,13 +2,14 @@ import random
 import pyxel
 import socket
 
-LISTEN_ADDRESS = ("", 5005)  # Match the server port
+HB_LISTEN_ADDRESS = ("", 5005)  # Match the server port
+CONTROLLER_LISTEN_ADDRESS = ("", 5006)  # Match the server port
 
-def create_udp_socket():
+def create_udp_socket(address):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket.setblocking(False)
-    client_socket.bind(LISTEN_ADDRESS)  # Bind so we can receive packets on this port
-    print(f"UDP client listening on {LISTEN_ADDRESS}.")
+    client_socket.bind(address)  # Bind so we can receive packets on this port
+    print(f"UDP client listening on {address}.")
     return client_socket
 
 def check_for_heartbeat_from_server(socket: socket.socket) -> bool:
@@ -19,13 +20,22 @@ def check_for_heartbeat_from_server(socket: socket.socket) -> bool:
     except BlockingIOError:
         return False
         
+def check_for_buttonpress_from_server(socket: socket.socket) -> bool:
+    try:
+        data, addr = socket.recvfrom(1024)  # 1 KB buffer
+        print(f"Client: received {data} from {addr}")
+        return True
+    except BlockingIOError:
+        return False
 
 
 def add_heart(hearts: list[dict]):
     hearts.append(dict(x=game['x'] + 140, y=0, big=False))
 
 
-client_socket = create_udp_socket()
+client_socket_hb = create_udp_socket(HB_LISTEN_ADDRESS)
+client_socket_controller = create_udp_socket(CONTROLLER_LISTEN_ADDRESS)
+
 
 SCREEN_WIDTH = 160
 SCREEN_HEIGHT = 80
@@ -50,8 +60,10 @@ def update():
     if rotate_button_pressed:
         ROTATE_SCREEN = not ROTATE_SCREEN
 
+    button_signal_received = check_for_buttonpress_from_server(socket=client_socket_controller)        
+
     game['x'] += 1
-    if game['y_pos'] == 0 and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_B)):
+    if game['y_pos'] == 0 and (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_A) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_B) or button_signal_received):
         game['y_vel'] = 4
     if game['y_pos'] >= 0:
         game['y_vel'] -= game['gravity']
@@ -61,7 +73,10 @@ def update():
         game['y_vel'] = 0
 
     heart_button_pressed = pyxel.btnp(pyxel.KEY_H) or pyxel.btnp(pyxel.GAMEPAD1_BUTTON_Y)
-    heart_signal_received = check_for_heartbeat_from_server(socket=client_socket)
+    heart_signal_received = check_for_heartbeat_from_server(socket=client_socket_hb)
+
+    
+    
 
     if heart_button_pressed or heart_signal_received:
         add_heart(hearts=game['hearts'])
